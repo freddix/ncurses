@@ -1,7 +1,7 @@
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	3
+Release:	4
 License:	distributable
 Group:		Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
@@ -114,20 +114,20 @@ for t in narrowc wideclowcolor widec; do
 install -d obj-$t
 cd obj-$t
 ../%configure \
-	--enable-pc-files				\
-	--with-chtype='long'				\
-	--with-cxx					\
-	--with-cxx-binding				\
-	--with-gpm					\
-	--with-install-prefix=$RPM_BUILD_ROOT		\
-	--with-manpage-aliases				\
-	--with-manpage-format=normal			\
-	--with-normal					\
-	--with-shared					\
-	--without-ada					\
-	--without-debug					\
-	--without-manpage-symlinks			\
-	--without-profile				\
+	--enable-pc-files			\
+	--with-chtype='long'			\
+	--with-cxx				\
+	--with-cxx-binding			\
+	--with-gpm				\
+	--with-install-prefix=$RPM_BUILD_ROOT	\
+	--with-manpage-aliases			\
+	--with-manpage-format=normal		\
+	--with-normal				\
+	--with-shared				\
+	--without-ada				\
+	--without-debug				\
+	--without-manpage-symlinks		\
+	--without-profile			\
 	`[ "$t" = "wideclowcolor" ] && echo --enable-widec --disable-ext-colors --includedir=%{_includedir}wlc` \
 	`[ "$t" = "widec" ] && echo --enable-widec --enable-ext-colors --includedir=%{_includedir}w`
 %{__make}
@@ -144,12 +144,12 @@ for t in narrowc widec; do
 	PKG_CONFIG_LIBDIR=%{_pkgconfigdir}
 done
 
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libtinfo.so
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libtinfow.so
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libncursesw.so
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libcursesw.so
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libcurses.so
-ln -sf %{_libdir}/$(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libncurses.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libtinfo.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libtinfow.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libncursesw.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libcursesw.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libcurses.so
+ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libncurses.so
 
 ln -sf ../l/linux $RPM_BUILD_ROOT%{_datadir}/terminfo/c/console
 
@@ -161,11 +161,11 @@ ln -sf libncursesw.a $RPM_BUILD_ROOT%{_libdir}/libcursesw.a
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post	-p /sbin/ldconfig
-%postun	-p /sbin/ldconfig
+%post	-p /usr/sbin/ldconfig
+%postun	-p /usr/sbin/ldconfig
 
-%post	ext -p /sbin/ldconfig
-%postun	ext -p /sbin/ldconfig
+%post	ext -p /usr/sbin/ldconfig
+%postun	ext -p /usr/sbin/ldconfig
 
 %files
 %defattr(644,root,root,755)
@@ -189,6 +189,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/tabset
 
 %dir %{_datadir}/terminfo
+# the link is not installed under x8664
+%ifarch %{ix86}
+%dir %{_libdir}/terminfo
+%endif
 %{_datadir}/terminfo/E
 %dir %{_datadir}/terminfo/[cdgklprsvx]
 
