@@ -1,14 +1,15 @@
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	4
+Release:	5
 License:	distributable
 Group:		Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
 # Source0-md5:	8cb9c412e5f2d96bc6f459aa8c6282a1
-Patch0:		%{name}-meta.patch
-Patch1:		%{name}-gnome-terminal.patch
-Patch2:		%{name}-urxvt.patch
+Patch0:		ftp://dickey.his.com/ncurses/5.9/%{name}-5.9-20140308-patch.sh.bz2
+Patch1:		%{name}-meta.patch
+Patch2:		%{name}-gnome-terminal.patch
+Patch3:		%{name}-urxvt.patch
 URL:		http://dickey.his.com/ncurses/ncurses.html
 BuildRequires:	automake
 BuildRequires:	gpm-devel
@@ -102,6 +103,7 @@ applications that use C++ ncurses.
 %patch0 -p1
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
 
 %build
 unset TERMINFO || :
@@ -124,12 +126,13 @@ cd obj-$t
 	--with-manpage-format=normal		\
 	--with-normal				\
 	--with-shared				\
+	--with-pkg-config-libdir=%{_pkgconfigdir}   \
 	--without-ada				\
 	--without-debug				\
 	--without-manpage-symlinks		\
 	--without-profile			\
-	`[ "$t" = "wideclowcolor" ] && echo --enable-widec --disable-ext-colors --includedir=%{_includedir}wlc` \
-	`[ "$t" = "widec" ] && echo --enable-widec --enable-ext-colors --includedir=%{_includedir}w`
+	`[ "$t" = "wideclowcolor" ] && echo --enable-widec --disable-ext-colors`    \
+	`[ "$t" = "widec" ] && echo --enable-widec --enable-ext-colors`
 %{__make}
 
 cd ..
@@ -140,8 +143,13 @@ rm -rf $RPM_BUILD_ROOT
 
 for t in narrowc widec; do
 %{__make} -C obj-$t install \
-	INSTALL_PREFIX=$RPM_BUILD_ROOT	\
-	PKG_CONFIG_LIBDIR=%{_pkgconfigdir}
+	INSTALL_PREFIX=$RPM_BUILD_ROOT
+done
+
+mkdir $RPM_BUILD_ROOT%{_includedir}/ncurses{,w}
+for l in $RPM_BUILD_ROOT%{_includedir}/*.h; do
+	ln -s ../$(basename $l) $RPM_BUILD_ROOT%{_includedir}/ncurses
+	ln -s ../$(basename $l) $RPM_BUILD_ROOT%{_includedir}/ncursesw
 done
 
 ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libtinfo.so
@@ -189,10 +197,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/tabset
 
 %dir %{_datadir}/terminfo
-# the link is not installed under x8664
-%ifarch %{ix86}
-%dir %{_libdir}/terminfo
-%endif
 %{_datadir}/terminfo/E
 %dir %{_datadir}/terminfo/[cdgklprsvx]
 
@@ -206,6 +210,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/terminfo/r/rxvt*
 %{_datadir}/terminfo/s/screen*
 %{_datadir}/terminfo/v/vt100
+%{_datadir}/terminfo/v/vt102
 %{_datadir}/terminfo/v/vt220
 %{_datadir}/terminfo/v/vt220-8
 %{_datadir}/terminfo/v/vt52
@@ -239,6 +244,7 @@ rm -rf $RPM_BUILD_ROOT
 %exclude %{_datadir}/terminfo/r/rxvt*
 %exclude %{_datadir}/terminfo/s/screen*
 %exclude %{_datadir}/terminfo/v/vt100
+%exclude %{_datadir}/terminfo/v/vt102
 %exclude %{_datadir}/terminfo/v/vt220
 %exclude %{_datadir}/terminfo/v/vt220-8
 %exclude %{_datadir}/terminfo/v/vt52
@@ -267,17 +273,28 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/termcap.h
 %{_includedir}/tic.h
 %{_includedir}/unctrl.h
-%dir %{_includedir}w
-%{_includedir}w/curses.h
-%{_includedir}w/eti.h
-%{_includedir}w/nc_tparm.h
-%{_includedir}w/ncurses.h
-%{_includedir}w/ncurses_dll.h
-%{_includedir}w/term.h
-%{_includedir}w/term_entry.h
-%{_includedir}w/termcap.h
-%{_includedir}w/tic.h
-%{_includedir}w/unctrl.h
+%dir %{_includedir}/ncurses
+%{_includedir}/ncurses/curses.h
+%{_includedir}/ncurses/eti.h
+%{_includedir}/ncurses/nc_tparm.h
+%{_includedir}/ncurses/ncurses.h
+%{_includedir}/ncurses/ncurses_dll.h
+%{_includedir}/ncurses/term.h
+%{_includedir}/ncurses/term_entry.h
+%{_includedir}/ncurses/termcap.h
+%{_includedir}/ncurses/tic.h
+%{_includedir}/ncurses/unctrl.h
+%dir %{_includedir}/ncursesw
+%{_includedir}/ncursesw/curses.h
+%{_includedir}/ncursesw/eti.h
+%{_includedir}/ncursesw/nc_tparm.h
+%{_includedir}/ncursesw/ncurses.h
+%{_includedir}/ncursesw/ncurses_dll.h
+%{_includedir}/ncursesw/term.h
+%{_includedir}/ncursesw/term_entry.h
+%{_includedir}/ncursesw/termcap.h
+%{_includedir}/ncursesw/tic.h
+%{_includedir}/ncursesw/unctrl.h
 %{_pkgconfigdir}/ncurses.pc
 %{_pkgconfigdir}/ncursesw.pc
 %{_mandir}/man1/ncurses5-config.1*
@@ -503,9 +520,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/form.h
 %{_includedir}/menu.h
 %{_includedir}/panel.h
-%{_includedir}w/form.h
-%{_includedir}w/menu.h
-%{_includedir}w/panel.h
+%{_includedir}/ncurses*/form.h
+%{_includedir}/ncurses*/menu.h
+%{_includedir}/ncurses*/panel.h
 %{_pkgconfigdir}/form.pc
 %{_pkgconfigdir}/formw.pc
 %{_pkgconfigdir}/menu.pc
@@ -587,13 +604,20 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/cursesw.h
 %{_includedir}/etip.h
 %{_includedir}/cursslk.h
-%{_includedir}w/cursesapp.h
-%{_includedir}w/cursesf.h
-%{_includedir}w/cursesm.h
-%{_includedir}w/cursesp.h
-%{_includedir}w/cursesw.h
-%{_includedir}w/etip.h
-%{_includedir}w/cursslk.h
+%{_includedir}/ncurses/cursesapp.h
+%{_includedir}/ncurses/cursesf.h
+%{_includedir}/ncurses/cursesm.h
+%{_includedir}/ncurses/cursesp.h
+%{_includedir}/ncurses/cursesw.h
+%{_includedir}/ncurses/etip.h
+%{_includedir}/ncurses/cursslk.h
+%{_includedir}/ncursesw/cursesapp.h
+%{_includedir}/ncursesw/cursesf.h
+%{_includedir}/ncursesw/cursesm.h
+%{_includedir}/ncursesw/cursesp.h
+%{_includedir}/ncursesw/cursesw.h
+%{_includedir}/ncursesw/etip.h
+%{_includedir}/ncursesw/cursslk.h
 %{_pkgconfigdir}/ncurses++.pc
 %{_pkgconfigdir}/ncurses++w.pc
 
