@@ -1,7 +1,7 @@
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	6
+Release:	7
 License:	distributable
 Group:		Core/Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
