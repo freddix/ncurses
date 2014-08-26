@@ -1,7 +1,7 @@
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	7
+Release:	9
 License:	distributable
 Group:		Core/Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
@@ -16,8 +16,6 @@ BuildRequires:	gpm-devel
 BuildRequires:	libstdc++-devel
 BuildRequires:	pkg-config
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
-
-%define		_includedir	%{_prefix}/include/ncurses
 
 %description
 The curses library routines give the user a terminal-independent
@@ -106,65 +104,52 @@ applications that use C++ ncurses.
 %patch3 -p1
 
 %build
-unset TERMINFO || :
-gcc_target=$(gcc -dumpmachine)
-gcc_version=%{cc_version}
-CFLAGS="%{rpmcflags} -DPURE_TERMINFO -D_FILE_OFFSET_BITS=64"
-cp -f /usr/share/automake/config.sub .
-
-for t in narrowc wideclowcolor widec; do
-install -d obj-$t
-cd obj-$t
-../%configure \
-	--enable-pc-files			\
-	--with-chtype='long'			\
-	--with-cxx				\
-	--with-cxx-binding			\
-	--with-gpm				\
-	--with-install-prefix=$RPM_BUILD_ROOT	\
-	--with-manpage-aliases			\
-	--with-manpage-format=normal		\
-	--with-normal				\
-	--with-shared				\
+install -d build-ncurses{,w}
+COMMONOPT=" \
+%ifarch %{x8664}
+	--with-chtype=long  \
+%endif
+	--with-normal	    \
 	--with-pkg-config-libdir=%{_pkgconfigdir}   \
-	--without-ada				\
-	--without-debug				\
-	--without-manpage-symlinks		\
-	--without-profile			\
-	`[ "$t" = "wideclowcolor" ] && echo --enable-widec --disable-ext-colors`    \
-	`[ "$t" = "widec" ] && echo --enable-widec --enable-ext-colors`
+	--with-shared	    \
+	--without-ada	    \
+	--without-debug"
+
+cd build-ncursesw
+../%configure \
+	--enable-ext-colors \
+	--enable-pc-files   \
+	--enable-widec	    \
+	$COMMONOPT
 %{__make}
 
-cd ..
-done
+cd ../build-ncurses
+../%configure \
+	$COMMONOPT
+%{__make}
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-for t in narrowc widec; do
-%{__make} -C obj-$t install \
-	INSTALL_PREFIX=$RPM_BUILD_ROOT
+cd build-ncursesw
+%{__make} install \
+    DESTDIR=$RPM_BUILD_ROOT
+
+for lib in ncurses form panel menu; do
+    echo "INPUT(-l${lib}w)" > $RPM_BUILD_ROOT%{_libdir}/lib${lib}.so
+done
+for lib in ncurses ncurses++ form panel menu; do
+    ln -s ${lib}w.pc $RPM_BUILD_ROOT%{_pkgconfigdir}/${lib}.pc
 done
 
-mkdir $RPM_BUILD_ROOT%{_includedir}/ncurses{,w}
-for l in $RPM_BUILD_ROOT%{_includedir}/*.h; do
-	ln -s ../$(basename $l) $RPM_BUILD_ROOT%{_includedir}/ncurses
-	ln -s ../$(basename $l) $RPM_BUILD_ROOT%{_includedir}/ncursesw
+echo "INPUT(-lncursesw)" > $RPM_BUILD_ROOT%{_libdir}/libcursesw.so
+ln -s libncurses.so $RPM_BUILD_ROOT%{_libdir}/libcurses.so
+
+cd ../build-ncurses
+for lib in ncurses form panel menu; do
+    install -Dm755 lib/lib${lib}.so.%{version} $RPM_BUILD_ROOT%{_libdir}/lib${lib}.so.%{version}
+    ln -s lib${lib}.so.%{version} $RPM_BUILD_ROOT%{_libdir}/lib${lib}.so.5
 done
-
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libtinfo.so
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libtinfow.so
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libncursesw.so
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncursesw.so.6.*) $RPM_BUILD_ROOT%{_libdir}/libcursesw.so
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libcurses.so
-ln -sf $(basename $RPM_BUILD_ROOT%{_libdir}/libncurses.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libncurses.so
-
-ln -sf ../l/linux $RPM_BUILD_ROOT%{_datadir}/terminfo/c/console
-
-ln -sf libncursesw.a $RPM_BUILD_ROOT%{_libdir}/libcursesw.a
-
-%{__rm} $RPM_BUILD_ROOT%{_libdir}/libcurses.a
-%{__rm} $RPM_BUILD_ROOT%{_libdir}/libcursesw.a
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -253,14 +238,11 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(644,root,root,755)
 %doc doc/html/ncurses-intro.html
-%attr(755,root,root) %{_bindir}/ncurses5-config
 %attr(755,root,root) %{_bindir}/ncursesw6-config
 %attr(755,root,root) %{_libdir}/libcurses.so
 %attr(755,root,root) %{_libdir}/libcursesw.so
 %attr(755,root,root) %{_libdir}/libncurses.so
 %attr(755,root,root) %{_libdir}/libncursesw.so
-%attr(755,root,root) %{_libdir}/libtinfo.so
-%attr(755,root,root) %{_libdir}/libtinfow.so
 
 %dir %{_includedir}
 %{_includedir}/curses.h
@@ -273,31 +255,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/termcap.h
 %{_includedir}/tic.h
 %{_includedir}/unctrl.h
-%dir %{_includedir}/ncurses
-%{_includedir}/ncurses/curses.h
-%{_includedir}/ncurses/eti.h
-%{_includedir}/ncurses/nc_tparm.h
-%{_includedir}/ncurses/ncurses.h
-%{_includedir}/ncurses/ncurses_dll.h
-%{_includedir}/ncurses/term.h
-%{_includedir}/ncurses/term_entry.h
-%{_includedir}/ncurses/termcap.h
-%{_includedir}/ncurses/tic.h
-%{_includedir}/ncurses/unctrl.h
-%dir %{_includedir}/ncursesw
-%{_includedir}/ncursesw/curses.h
-%{_includedir}/ncursesw/eti.h
-%{_includedir}/ncursesw/nc_tparm.h
-%{_includedir}/ncursesw/ncurses.h
-%{_includedir}/ncursesw/ncurses_dll.h
-%{_includedir}/ncursesw/term.h
-%{_includedir}/ncursesw/term_entry.h
-%{_includedir}/ncursesw/termcap.h
-%{_includedir}/ncursesw/tic.h
-%{_includedir}/ncursesw/unctrl.h
 %{_pkgconfigdir}/ncurses.pc
 %{_pkgconfigdir}/ncursesw.pc
-%{_mandir}/man1/ncurses5-config.1*
 %{_mandir}/man1/ncursesw6-config.1*
 %{_mandir}/man3/BC.3x*
 %{_mandir}/man3/COLORS.3x*
@@ -489,11 +448,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/wunctrl*.3x*
 %{_mandir}/man3/wvline*.3x*
 
-%files static
-%defattr(644,root,root,755)
-%{_libdir}/libncurses.a
-%{_libdir}/libncursesw.a
-
 %files ext
 %defattr(644,root,root,755)
 %attr(755,root,root) %ghost %{_libdir}/libform.so.[56]
@@ -520,9 +474,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/form.h
 %{_includedir}/menu.h
 %{_includedir}/panel.h
-%{_includedir}/ncurses*/form.h
-%{_includedir}/ncurses*/menu.h
-%{_includedir}/ncurses*/panel.h
 %{_pkgconfigdir}/form.pc
 %{_pkgconfigdir}/formw.pc
 %{_pkgconfigdir}/menu.pc
@@ -585,15 +536,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/unpost_menu.3x*
 %{_mandir}/man3/update_panels*.3x*
 
-%files ext-static
-%defattr(644,root,root,755)
-%{_libdir}/libform.a
-%{_libdir}/libmenu.a
-%{_libdir}/libpanel.a
-%{_libdir}/libformw.a
-%{_libdir}/libmenuw.a
-%{_libdir}/libpanelw.a
-
 %files c++-devel
 %defattr(644,root,root,755)
 %doc c++/{demo.cc,README-first,NEWS,PROBLEMS}
@@ -604,25 +546,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/cursesw.h
 %{_includedir}/etip.h
 %{_includedir}/cursslk.h
-%{_includedir}/ncurses/cursesapp.h
-%{_includedir}/ncurses/cursesf.h
-%{_includedir}/ncurses/cursesm.h
-%{_includedir}/ncurses/cursesp.h
-%{_includedir}/ncurses/cursesw.h
-%{_includedir}/ncurses/etip.h
-%{_includedir}/ncurses/cursslk.h
-%{_includedir}/ncursesw/cursesapp.h
-%{_includedir}/ncursesw/cursesf.h
-%{_includedir}/ncursesw/cursesm.h
-%{_includedir}/ncursesw/cursesp.h
-%{_includedir}/ncursesw/cursesw.h
-%{_includedir}/ncursesw/etip.h
-%{_includedir}/ncursesw/cursslk.h
 %{_pkgconfigdir}/ncurses++.pc
 %{_pkgconfigdir}/ncurses++w.pc
-
-%files c++-static
-%defattr(644,root,root,755)
-%{_libdir}/libncurses++.a
-%{_libdir}/libncurses++w.a
 
