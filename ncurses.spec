@@ -1,7 +1,7 @@
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	9
+Release:	10
 License:	distributable
 Group:		Core/Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
@@ -12,7 +12,6 @@ Patch2:		%{name}-gnome-terminal.patch
 Patch3:		%{name}-urxvt.patch
 URL:		http://dickey.his.com/ncurses/ncurses.html
 BuildRequires:	automake
-BuildRequires:	gpm-devel
 BuildRequires:	libstdc++-devel
 BuildRequires:	pkg-config
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -109,6 +108,8 @@ COMMONOPT=" \
 %ifarch %{x8664}
 	--with-chtype=long  \
 %endif
+	--with-manpage-aliases		\
+	--with-manpage-format=normal	\
 	--with-normal	    \
 	--with-pkg-config-libdir=%{_pkgconfigdir}   \
 	--with-shared	    \
@@ -132,7 +133,7 @@ cd ../build-ncurses
 rm -rf $RPM_BUILD_ROOT
 
 cd build-ncursesw
-%{__make} install \
+%{__make} -j1 install \
     DESTDIR=$RPM_BUILD_ROOT
 
 for lib in ncurses form panel menu; do
@@ -151,6 +152,9 @@ for lib in ncurses form panel menu; do
     ln -s lib${lib}.so.%{version} $RPM_BUILD_ROOT%{_libdir}/lib${lib}.so.5
 done
 
+cd ../
+grep -B 100 '$Id' README > LICENSE
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -162,7 +166,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
-%doc ANNOUNCE README
+%doc ANNOUNCE LICENSE README
 %attr(755,root,root) %{_bindir}/captoinfo
 %attr(755,root,root) %{_bindir}/clear
 %attr(755,root,root) %{_bindir}/infocmp
