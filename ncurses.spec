@@ -1,7 +1,11 @@
+# based on PLD Linux spec git://git.pld-linux.org/packages/.git
+
+%bcond_with	bootstrap
+
 Summary:	Emulation of curses in System V Release 4.0
 Name:		ncurses
 Version:	5.9
-Release:	10
+Release:	11
 License:	distributable
 Group:		Core/Libraries
 Source0:	ftp://dickey.his.com/ncurses/%{name}-%{version}.tar.gz
@@ -13,7 +17,7 @@ Patch3:		%{name}-urxvt.patch
 URL:		http://dickey.his.com/ncurses/ncurses.html
 BuildRequires:	automake
 BuildRequires:	libstdc++-devel
-BuildRequires:	pkg-config
+%{!?with_bootstrap:BuildRequires:	pkg-config}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -139,9 +143,12 @@ cd build-ncursesw
 for lib in ncurses form panel menu; do
     echo "INPUT(-l${lib}w)" > $RPM_BUILD_ROOT%{_libdir}/lib${lib}.so
 done
+
+%if %{without bootstrap}
 for lib in ncurses ncurses++ form panel menu; do
     ln -s ${lib}w.pc $RPM_BUILD_ROOT%{_pkgconfigdir}/${lib}.pc
 done
+%endif
 
 echo "INPUT(-lncursesw)" > $RPM_BUILD_ROOT%{_libdir}/libcursesw.so
 ln -s libncurses.so $RPM_BUILD_ROOT%{_libdir}/libcurses.so
@@ -259,8 +266,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/termcap.h
 %{_includedir}/tic.h
 %{_includedir}/unctrl.h
+%if %{without bootstrap}
 %{_pkgconfigdir}/ncurses.pc
 %{_pkgconfigdir}/ncursesw.pc
+%endif
 %{_mandir}/man1/ncursesw6-config.1*
 %{_mandir}/man3/BC.3x*
 %{_mandir}/man3/COLORS.3x*
@@ -478,12 +487,14 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/form.h
 %{_includedir}/menu.h
 %{_includedir}/panel.h
+%if %{without bootstrap}
 %{_pkgconfigdir}/form.pc
 %{_pkgconfigdir}/formw.pc
 %{_pkgconfigdir}/menu.pc
 %{_pkgconfigdir}/menuw.pc
 %{_pkgconfigdir}/panel.pc
 %{_pkgconfigdir}/panelw.pc
+%endif
 %{_mandir}/man3/TYPE_ALNUM.3x*
 %{_mandir}/man3/TYPE_ALPHA.3x*
 %{_mandir}/man3/TYPE_ENUM.3x*
@@ -550,6 +561,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/cursesw.h
 %{_includedir}/etip.h
 %{_includedir}/cursslk.h
+%if %{without bootstrap}
 %{_pkgconfigdir}/ncurses++.pc
 %{_pkgconfigdir}/ncurses++w.pc
+%endif
 
